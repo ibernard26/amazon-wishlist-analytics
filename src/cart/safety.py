@@ -5,6 +5,7 @@ Protects against runaway spending, sudden price surges, and unauthorized order p
 from typing import List, Dict, Any, Tuple
 from src.config import settings
 from src.database.models import WishlistItem
+from src.saved_cart import ASIN_PATTERN, saved_cart_issues
 
 
 class CartSafetyViolation(Exception):
@@ -26,6 +27,12 @@ def validate_cart_safety(
     
     if not items:
         return False, ["Cart cannot be empty."]
+
+    # Stable CART IDs are tracking identifiers, never Amazon child ASINs.
+    invalid_asins = [i.asin for i in items if not ASIN_PATTERN.fullmatch(i.asin or "")]
+    if invalid_asins:
+        issues.append(f"Invalid or unresolved Amazon ASINs: {', '.join(invalid_asins)}")
+    issues.extend(saved_cart_issues(items))
 
     # 1. Check out-of-stock items
     unavailable = [i.title for i in items if not i.in_stock]

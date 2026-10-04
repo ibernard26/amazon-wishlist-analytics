@@ -2,6 +2,53 @@
 
 An enterprise-grade, full-stack platform for tracking Amazon wishlists, analyzing price trends, visualizing spend distributions, optimizing basket bundles using algorithmic budget solvers, and executing shopping cart orders on Amazon accounts with built-in safety guardrails.
 
+## Saved clothing cart — October 4, 2026
+
+The complete 23-row clothing list is saved for later retrieval. No purchase or
+reminder is scheduled. The user plans to request it again around October 11–18;
+do not stage or submit an order until asked.
+
+| File | Purpose |
+| --- | --- |
+| [cart.json](cart.json) | Analytics/import data with stable `cart_id`, selected descriptions, and preserved original requests |
+| [amazon_asin_matches.json](amazon_asin_matches.json) | Original intent, selected ASINs, evidence links, substitutions, and unresolved candidates |
+| [amazon-shopping-cart-deployment.json](amazon-shopping-cart-deployment.json) | Complete 23-row future-order plan, manual-review queue, and live-offer gates |
+| [MEMORY.md](MEMORY.md) | Retrieval instructions and decisions to preserve for the next session |
+
+There are 14 previously matched original identities, 6 selected substitutes, and
+3 manual-review rows. These are identity-research statuses, **not current stock
+or purchase approval**. Every saved row has `auto_cart_eligible=false` until its
+live offer is reviewed. All existing confirmation and budget caps remain in force.
+
+`current_price` is retained for historical-budget analytics only. The $862.74
+subtotal uses original-request snapshot prices; it is not a live quote and does
+not establish replacement prices. Original product titles, colors, prices,
+delivery text, and target budgets remain under `original_request`. Selected
+substitute titles/colors are recorded separately so an ASIN does not carry the
+wrong brand or variant description. Pack count is distinct from order quantity.
+
+```bash
+# Read and validate all 23 saved lines; no database or Amazon writes
+python run.py saved-cart
+python run.py saved-cart --json
+
+# Import the snapshot for analytics (not an order)
+python run.py import-cart --json cart.json
+
+# Offline data-integrity tests, without third-party dependencies
+python3 -m unittest discover -s tests -p 'test_saved_cart.py' -v
+```
+
+Importing over the old `CART-001` placeholder data upgrades matching rows in
+place, preserving their database IDs/history rather than adding another 23 rows.
+If both a placeholder and its real ASIN already exist, import stops for explicit
+reconciliation instead of deleting either existing record.
+
+When the user returns, refresh US size/color/pack, price, seller, stock, return
+terms, delivery and tax/shipping; resolve all three manual-review rows. Keep
+them in the plan or obtain an explicit replacement/removal decision. Never treat
+`CART-###` as an Amazon ASIN. Cart staging is separate from final order submission.
+
 ---
 
 ## 🌟 Key Features

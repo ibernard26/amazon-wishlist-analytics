@@ -13,6 +13,26 @@ from src.analytics.visualizer import build_visualization_payload
 from src.analytics.budget_optimizer import optimize_cart_budget
 from src.cart.execution_service import CartExecutionService
 from src.config import settings
+from src.saved_cart import SavedCartError, load_saved_cart
+
+
+def cmd_saved_cart(args):
+    """Retrieve the complete saved order intent without importing or carting it."""
+    try:
+        saved = load_saved_cart()
+    except SavedCartError as exc:
+        print(f"Saved cart validation failed: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    manifest = saved["deployment"]
+    if args.json:
+        print(json.dumps(manifest, indent=2))
+        return
+    summary = manifest["summary"]
+    print(f"Saved items: {summary['total_rows']} | Exact identities: {summary['ready_exact_rows']} | Substitutes: {summary['ready_substitute_rows']} | Manual review: {summary['manual_review_rows']}")
+    print(f"Historical budget estimate: ${summary['repo_listed_subtotal_usd']:.2f} (not a live Amazon quote)")
+    for row in manifest["items"]:
+        print(f"{row['cart_id']} | {row.get('asin') or 'UNRESOLVED'} | {row['deployment_status']} | {row['selected_variant']}")
+    print("No Amazon action performed. Recheck every live offer when ready; final checkout needs explicit confirmation.")
 
 
 def cmd_serve(args):
@@ -257,6 +277,9 @@ def main():
     p_import.add_argument("--text", help="Pasted cart text or ASINs")
     p_import.add_argument("--json", help="Path to JSON file containing cart items")
 
+    p_saved = subparsers.add_parser("saved-cart", help="Read and validate all saved cart intent; no Amazon action")
+    p_saved.add_argument("--json", action="store_true", help="Print the complete deployment manifest as JSON")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -276,7 +299,8 @@ def main():
         "deals": cmd_deals,
         "optimize": cmd_optimize,
         "cart": cmd_cart,
-        "orders": cmd_orders
+        "orders": cmd_orders,
+        "saved-cart": cmd_saved_cart
     }
 
     cmd_fn = commands.get(args.command)
