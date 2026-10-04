@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }}</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <i data-lucide="shopping-bag"></i>
+        </div>
+        <div class="brand-title">
+          <h1>Amazon Wishlist Analytics & Cart Engine</h1>
+          <p>Real-time Price Tracking, Budget Optimization & Automated Shopping Cart Execution</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-view-orders" class="btn btn-secondary">
+          <i data-lucide="history"></i> Order History
+        </button>
+        <button id="btn-open-sync" class="btn btn-primary">
+          <i data-lucide="refresh-cw"></i> Sync Wishlist
+        </button>
+        <button id="btn-cart-selected" class="btn btn-amazon" style="display: none;">
+          🛒 Cart Selected (0)
+        </button>
+      </div>
+    </header>
+
+    <!-- Executive KPI Grid -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>TOTAL WISHLIST VALUE</span>
+          <i data-lucide="dollar-sign" style="width:16px; height:16px;"></i>
+        </div>
+        <div class="kpi-value" id="kpi-total-val">$0.00</div>
+        <div class="kpi-subtext">Sum of current item prices</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>TOTAL SAVINGS AVAILABLE</span>
+          <i data-lucide="trending-down" style="width:16px; height:16px; color:var(--accent-success);"></i>
+        </div>
+        <div class="kpi-value badge-positive" id="kpi-total-sav">$0.00</div>
+        <div class="kpi-subtext">Off list / original retail prices</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>AVERAGE DISCOUNT</span>
+          <i data-lucide="percent" style="width:16px; height:16px;"></i>
+        </div>
+        <div class="kpi-value" id="kpi-avg-disc">0.0%</div>
+        <div class="kpi-subtext">Portfolio-wide discount rate</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>ITEMS TRACKED</span>
+          <i data-lucide="list" style="width:16px; height:16px;"></i>
+        </div>
+        <div class="kpi-value" id="kpi-items-count">0</div>
+        <div class="kpi-subtext">In active wishlist monitoring</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>TARGET PRICE MET</span>
+          <i data-lucide="target" style="width:16px; height:16px; color:var(--accent-success);"></i>
+        </div>
+        <div class="kpi-value" style="color:var(--accent-success);" id="kpi-target-met">0</div>
+        <div class="kpi-subtext">Ready for immediate checkout</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span>DEAL RADAR ALERTS</span>
+          <i data-lucide="zap" style="width:16px; height:16px; color:var(--accent-warning);"></i>
+        </div>
+        <div class="kpi-value" style="color:var(--accent-warning);" id="kpi-deal-count">0</div>
+        <div class="kpi-subtext">Scores ≥ 65 (30-day lows)</div>
+      </div>
+    </section>
+
+    <!-- Visualizations: Charts Grid Main -->
+    <div class="charts-grid-main">
+      <!-- Price Trend Timeline -->
+      <div class="dashboard-card">
+        <div class="card-title-bar">
+          <h2><i data-lucide="line-chart" style="width:18px; height:18px; color:var(--accent-primary);"></i> 30-Day Price Movement & Volatility Timeline</h2>
+          <span style="font-size:0.75rem; color:var(--text-dim);">Historical tracking for key priority items</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-timeline"></canvas>
+        </div>
+      </div>
+
+      <!-- Category Allocation Doughnut -->
+      <div class="dashboard-card">
+        <div class="card-title-bar">
+          <h2><i data-lucide="pie-chart" style="width:18px; height:18px; color:var(--accent-success);"></i> Category Allocation</h2>
+          <span style="font-size:0.75rem; color:var(--text-dim);">Spend by department</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-category"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Grid Sub -->
+    <div class="charts-grid-sub">
+      <!-- Priority Breakdown -->
+      <div class="dashboard-card">
+        <div class="card-title-bar">
+          <h2><i data-lucide="bar-chart-2" style="width:18px; height:18px; color:var(--accent-warning);"></i> Spend Value by Priority (High / Med / Low)</h2>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-priority"></canvas>
+        </div>
+      </div>
+
+      <!-- Price Tiers -->
+      <div class="dashboard-card">
+        <div class="card-title-bar">
+          <h2><i data-lucide="layers" style="width:18px; height:18px; color:var(--accent-cyan);"></i> Price Bracket Distribution</h2>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="chart-tiers"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deal Radar / High-Value Opportunities -->
+    <div class="dashboard-card">
+      <div class="card-title-bar">
+        <h2><i data-lucide="flame" style="width:18px; height:18px; color:#f97316;"></i> Deal Radar — Deepest Discounts & 30-Day Lows</h2>
+        <span style="font-size:0.8rem; color:var(--text-muted);">Calculated using price volatility, discount %, and target thresholds</span>
+      </div>
+      <div id="deal-radar-cards" class="deal-radar-grid">
+        <!-- Rendered via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Budget Optimizer & Knapsack Cart Solver -->
+    <div class="dashboard-card">
+      <div class="card-title-bar">
+        <h2><i data-lucide="calculator" style="width:18px; height:18px; color:var(--accent-purple);"></i> Intelligent Budget Optimizer & Cart Solver</h2>
+        <span style="font-size:0.8rem; color:var(--text-muted);">Knapsack algorithm maximizes priority and savings under your spending cap</span>
+      </div>
+
+      <div class="optimizer-controls">
+        <div class="control-group">
+          <label>Target Spending Limit ($ USD)</label>
+          <div class="input-slider-box">
+            <input type="range" id="opt-budget-slider" min="25" max="1000" step="25" value="250">
+            <input type="number" id="opt-budget-input" min="10" max="5000" value="250" style="width: 100px;">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Optimization Goal / Strategy</label>
+          <select id="opt-strategy-select">
+            <option value="BALANCED">Balanced (Priority + Deal Heat + Savings)</option>
+            <option value="MAX_PRIORITY">Highest Priority First (High/Med Focus)</option>
+            <option value="MAX_SAVINGS">Maximum Dollar Savings (Deepest Discounts)</option>
+          </select>
+        </div>
+
+        <button id="btn-run-optimizer" class="btn btn-primary">
+          <i data-lucide="sparkles"></i> Solve Optimal Bundle
+        </button>
+      </div>
+
+      <!-- Optimizer Results Container -->
+      <div id="optimizer-results" class="optimizer-results">
+        <div class="opt-summary-row">
+          <div>
+            <strong>Recommended Bundle:</strong>
+            <span id="opt-res-count">0</span> items • Total Cost: <strong id="opt-res-spent" style="color:#fff;">$0.00</strong>
+            • Saved: <strong id="opt-res-savings" style="color:var(--accent-success);">$0.00</strong>
+            • Remaining Budget: <span id="opt-res-remaining">$0.00</span>
+          </div>
+          <button id="btn-cart-optimized" class="btn btn-amazon btn-sm">
+            🛒 Execute Bundle Cart
+          </button>
+        </div>
+        <div id="opt-selected-chips" class="opt-chips">
+          <!-- Chips rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Wishlist Data Table -->
+    <div class="dashboard-card">
+      <div class="card-title-bar">
+        <h2><i data-lucide="table" style="width:18px; height:18px; color:var(--accent-primary);"></i> Wishlist Items & Automated Execution Manager</h2>
+      </div>
+
+      <!-- Filters & Actions Toolbar -->
+      <div class="table-toolbar">
+        <div class="table-filters">
+          <input type="text" id="filter-search" placeholder="Search item title or ASIN..." style="width: 240px;">
+          <select id="filter-category">
+            <option value="All">All Categories</option>
+          </select>
+          <select id="filter-priority">
+            <option value="All">All Priorities</option>
+            <option value="HIGH">High Priority</option>
+            <option value="MEDIUM">Medium Priority</option>
+            <option value="LOW">Low Priority</option>
+          </select>
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; cursor:pointer;">
+            <input type="checkbox" id="filter-target-met"> Target Price Met Only
+          </label>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 36px;"><input type="checkbox" id="select-all-items" title="Select all items"></th>
+              <th>Product Details</th>
+              <th>Priority</th>
+              <th>Current Price</th>
+              <th>Target Price</th>
+              <th>Discount</th>
+              <th>Deal Score</th>
+              <th>Status</th>
+              <th>Cart Action</th>
+            </tr>
+          </thead>
+          <tbody id="items-table-body">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div> <!-- End App Container -->
+
+  <!-- Modal: Sync Amazon Wishlist -->
+  <div id="modal-sync" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Sync Amazon Wishlist</h3>
+        <button class="btn-close btn-close-modal">&times;</button>
+      </div>
+      <div class="alert-box alert-info">
+        <i data-lucide="info" style="width:18px; height:18px;"></i>
+        <span>Paste any public or shared Amazon Wishlist URL to import and track items in real time.</span>
+      </div>
+      <div class="control-group">
+        <label>Amazon Wishlist Public / Share Link</label>
+        <input type="text" id="sync-url-input" placeholder="https://www.amazon.com/hz/wishlist/ls/..." style="width: 100%;">
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="sync-browser-check">
+        <label for="sync-browser-check" style="font-size: 0.85rem; color: var(--text-muted);">
+          Use Playwright browser session (for authenticated or JS-heavy wishlists)
+        </label>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <button id="btn-load-sample" class="btn btn-secondary">
+          <i data-lucide="sparkles"></i> Load Sample Tech Wishlist (Demo)
+        </button>
+        <button id="btn-do-sync" class="btn btn-primary">
+          Sync Wishlist
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cart Review & Safe Execution -->
+  <div id="modal-cart" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Execute Shopping Cart Order</h3>
+        <button class="btn-close btn-close-modal">&times;</button>
+      </div>
+
+      <div class="alert-box alert-warning">
+        <i data-lucide="shield-alert" style="width:18px; height:18px;"></i>
+        <span>Guardrail Protection Active: Safety checks ensure subtotal remains under limit and safeguards against surge prices.</span>
+      </div>
+
+      <div style="max-height: 200px; overflow-y: auto; padding: 4px;" id="cart-review-list">
+        <!-- Item rows -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 1.1rem; padding: 8px 0; border-top: 1px solid var(--border-color);">
+        <span>Cart Items: <strong id="cart-review-count">0</strong></span>
+        <span>Order Total: <strong id="cart-review-total" style="color: #fff;">$0.00</strong></span>
+      </div>
+
+      <div class="control-group">
+        <label>Execution Mode</label>
+        <select id="cart-exec-mode">
+          <option value="REMOTE_LINK">⚡ Direct Amazon 1-Click Cart Preloader (Recommended)</option>
+          <option value="HEADED_AUTOMATION">🤖 Playwright Browser Automation (Interactive Cart Review)</option>
+          <option value="DRY_RUN">🛡️ Dry-Run Simulation Only (Audit Mode)</option>
+        </select>
+        <span style="font-size:0.75rem; color:var(--text-dim); margin-top:4px;">
+          The 1-Click Preloader opens Amazon directly in your browser with all chosen items pre-staged in your cart.
+        </span>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-secondary btn-close-modal">Cancel</button>
+        <button id="btn-confirm-cart" class="btn btn-amazon">
+          Confirm & Execute Cart Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Orders Audit History -->
+  <div id="modal-orders" class="modal-backdrop">
+    <div class="modal-window" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3>Cart Execution Audit History</h3>
+        <button class="btn-close btn-close-modal">&times;</button>
+      </div>
+      <div id="orders-history-list" style="max-height: 380px; overflow-y: auto;">
+        <!-- Order cards -->
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-secondary btn-close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
