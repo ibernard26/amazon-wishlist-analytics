@@ -78,6 +78,15 @@ def upsert_item(db: Session, item_data: Dict[str, Any], wishlist_id: int) -> Wis
         raise ValueError("ASIN is required to upsert an item.")
 
     item = get_item_by_asin(db, asin)
+    # Upgrade the old placeholder row in place, retaining its ID and history.
+    cart_id = item_data.get("cart_id")
+    if cart_id and cart_id != asin:
+        legacy_item = get_item_by_asin(db, cart_id)
+        if legacy_item and item and legacy_item.id != item.id:
+            raise ValueError(f"Both {cart_id} and {asin} already exist; reconcile them before importing.")
+        if legacy_item and not item:
+            item = legacy_item
+            item.asin = asin
     new_price = float(item_data.get("current_price", 0.0))
     orig_price = float(item_data.get("original_price", new_price)) if item_data.get("original_price") else new_price
 
@@ -120,6 +129,12 @@ def upsert_item(db: Session, item_data: Dict[str, Any], wishlist_id: int) -> Wis
             item.in_stock = item_data["in_stock"]
         if item_data.get("image_url"):
             item.image_url = item_data["image_url"]
+        if "product_url" in item_data:
+            item.product_url = item_data["product_url"]
+        if "notes" in item_data:
+            item.notes = item_data["notes"]
+        if "auto_buy" in item_data:
+            item.auto_buy = item_data["auto_buy"]
 
         if price_changed:
             record_price_history(db, item.id, new_price, item.original_price)
